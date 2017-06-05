@@ -1,9 +1,6 @@
 package cn.sh.jedis.service;
 
-import com.sun.org.apache.regexp.internal.RE;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.RedisCallback;
@@ -12,11 +9,8 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 /**
  * Created by sh44565 on 2017/6/5.
@@ -92,6 +86,10 @@ public class RedisService {
         redisTemplate.opsForList().leftPush(key, value);
     }
 
+    public void rightPop(String key) {
+        redisTemplate.opsForList().rightPop(key);
+    }
+
     public void hMSet(String key, Map<String, Object> map) {
         redisTemplate.execute(new RedisCallback() {
             @Override
@@ -103,6 +101,24 @@ public class RedisService {
                 return null;
             }
         });
+    }
+
+    public List<String> getKeysByPrefix(String prefixKey) {
+        List<String> keyList = new LinkedList<>();
+        RedisSerializer redisSerializer = redisTemplate.getStringSerializer();
+        Set<byte[]> keys = (Set<byte[]>) redisTemplate.execute(new RedisCallback<Set<byte[]>>() {
+            @Override
+            public Set<byte[]> doInRedis(RedisConnection redisConnection) throws DataAccessException {
+                return redisConnection.keys(redisSerializer.serialize(prefixKey + "*"));
+            }
+        });
+        keys.forEach(key -> keyList.add(new String (key)));
+        return keyList;
+    }
+
+    public void delKeys(List<String> keyList) {
+        if (keyList == null || keyList.isEmpty()) return;
+        keyList.forEach(this::del);
     }
 
 //    public static void main(String[] args) {
