@@ -12,8 +12,11 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 /**
  * Created by sh44565 on 2017/6/5.
@@ -80,6 +83,23 @@ public class RedisService {
             public Object doInRedis(RedisConnection redisConnection) throws DataAccessException {
                 RedisSerializer<String> redisSerializer = redisTemplate.getStringSerializer();
                 redisConnection.incr(redisSerializer.serialize(key));
+                return null;
+            }
+        });
+    }
+
+    public void leftPush(String key, String value) {
+        redisTemplate.opsForList().leftPush(key, value);
+    }
+
+    public void hMSet(String key, Map<String, Object> map) {
+        redisTemplate.execute(new RedisCallback() {
+            @Override
+            public Object doInRedis(RedisConnection redisConnection) throws DataAccessException {
+                RedisSerializer redisSerializer = redisTemplate.getStringSerializer();
+                Map<byte[], byte[]> bMap = new HashMap<byte[], byte[]>();
+                map.entrySet().forEach(m -> bMap.put(redisSerializer.serialize(m.getKey()), redisSerializer.serialize(m.getValue())));
+                redisConnection.hMSet(redisSerializer.serialize(key), bMap);
                 return null;
             }
         });
