@@ -1,8 +1,10 @@
 package cn.sh.jedis.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.serializer.Serializer;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.core.BoundHashOperations;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.RedisSerializer;
@@ -60,13 +62,12 @@ public class RedisService {
     public void hSet(String key, String field, String value) {
         redisTemplate.execute(new RedisCallback() {
             @Override
-            public Object doInRedis(RedisConnection redisConnection) throws DataAccessException {
+            public Boolean doInRedis(RedisConnection redisConnection) throws DataAccessException {
                 RedisSerializer<String> redisSerializer = redisTemplate.getStringSerializer();
                 byte[] serKey = redisSerializer.serialize(key);
                 byte[] serField = redisSerializer.serialize(field);
                 byte[] serValue = redisSerializer.serialize(value);
-                redisConnection.hSet(serKey, serField, serValue);
-                return null;
+                return redisConnection.hSet(serKey, serField, serValue);
             }
         });
     }
@@ -106,7 +107,7 @@ public class RedisService {
     public List<String> getKeysByPrefix(String prefixKey) {
         List<String> keyList = new LinkedList<>();
         RedisSerializer redisSerializer = redisTemplate.getStringSerializer();
-        Set<byte[]> keys = (Set<byte[]>) redisTemplate.execute(new RedisCallback<Set<byte[]>>() {
+        Set<byte[]> keys = (Set<byte[]>) redisTemplate.execute(new RedisCallback() {
             @Override
             public Set<byte[]> doInRedis(RedisConnection redisConnection) throws DataAccessException {
                 return redisConnection.keys(redisSerializer.serialize(prefixKey + "*"));
@@ -119,6 +120,19 @@ public class RedisService {
     public void delKeys(List<String> keyList) {
         if (keyList == null || keyList.isEmpty()) return;
         keyList.forEach(this::del);
+    }
+
+    public void boundHashOperations(String key, String value) {
+        redisTemplate.execute(new RedisCallback() {
+            @Override
+            public Object doInRedis(RedisConnection redisConnection) throws DataAccessException {
+                RedisSerializer redisSerializer = redisTemplate.getStringSerializer();
+                BoundHashOperations<Serializer, byte[], byte[]> boundHashOperations = redisTemplate.boundHashOps(key.getBytes());
+                boundHashOperations.put(redisSerializer.serialize("bound"), redisSerializer.serialize(value));
+                redisConnection.hMSet(key.getBytes(), boundHashOperations.entries());
+                return null;
+            }
+        });
     }
 
 //    public static void main(String[] args) {

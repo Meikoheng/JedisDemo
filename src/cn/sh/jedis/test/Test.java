@@ -28,6 +28,7 @@ public class Test {
 //        redisService.hMSet("map", map);
 //        List<String> keyList = redisService.getKeysByPrefix("");
 //        redisService.delKeys(keyList);
-        redisService.rightPop("lp");
+//        redisService.rightPop("lp");
+        redisService.boundHashOperations("b", "{id:0,name:sh,sex:'male'}");
     }
 }
